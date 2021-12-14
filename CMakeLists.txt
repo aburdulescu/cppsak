@@ -17,9 +17,8 @@ if (ASAN)
 endif()
 
 add_executable(enum2s main.cc)
-target_include_directories(enum2s PRIVATE llvm/include)
 
-find_library(LIBCLANG libclang.so HINTS llvm/lib/)
+find_library(LIBCLANG libclang.so)
 
 message(STATUS "LIBCLANG=${LIBCLANG}")
 
