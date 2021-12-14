@@ -5,16 +5,9 @@
 - libclang
 
 ``` shell
-git clone --depth=1 https://github.com/llvm/llvm-project.git
-
-mkdir llvm-build && cd llvm-build
-
-cmake -DLLVM_ENABLE_PROJECTS=clang -G Ninja -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache ../llvm-project/llvm -DCMAKE_INSTALL_PREFIX=$(pwd)/../llvm-dst/ -DLIBCLANG_BUILD_STATIC=ON
-
-ninja libclang
-
-ninja install-libclang-stripped
-ninja install-libclang-headers-stripped
+wget https://github.com/llvm/llvm-project/releases/download/llvmorg-13.0.0/clang+llvm-13.0.0-x86_64-linux-gnu-ubuntu-20.04.tar.xz
+tar xf clang+llvm-13.0.0-x86_64-linux-gnu-ubuntu-20.04.tar.xz
+ln -s clang+llvm-13.0.0-x86_64-linux-gnu-ubuntu-20.04 enum2s/llvm
 ```
 
 ## Usage
