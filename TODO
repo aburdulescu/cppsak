@@ -1,2 +1,3 @@
 - add help message
 - add tests
+- use static libclang
