@@ -2,7 +2,7 @@
 
 namespace test {
 enum class Foo : uint32_t {
-  a,
+  a=1,
   b,
   c,
 };
