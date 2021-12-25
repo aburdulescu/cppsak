@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.15)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-project(enum2s)
+project(enums)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_C_COMPILER_LAUNCHER ccache)
@@ -17,10 +17,12 @@ if (ASAN)
   string(APPEND CMAKE_CXX_FLAGS " -fsanitize=address,undefined")
 endif()
 
-add_executable(enum2s main.cc)
+add_executable(enums main.cc)
 
 find_library(LIBCLANG libclang.so)
 
 message(STATUS "LIBCLANG=${LIBCLANG}")
 
-target_link_libraries(enum2s PRIVATE ${LIBCLANG})
+target_link_libraries(enums PRIVATE ${LIBCLANG})
+
+install(TARGETS enums DESTINATION bin)
