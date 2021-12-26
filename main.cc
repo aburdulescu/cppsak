@@ -28,6 +28,8 @@ static bool WantedEnum(std::vector<const char*> wanted, const char* name) {
 
 static CXChildVisitResult visitor(CXCursor cursor, CXCursor parent,
                                   CXClientData client_data) {
+  (void)client_data;
+
   auto kind = clang_getCursorKind(cursor);
 
   // {
@@ -125,6 +127,16 @@ static std::pair<int, char**> parseFlags(int argc, char** argv) {
   return {argc - n, argv + n};
 }
 
+static bool HasCorrectExt(const char* filename) {
+  const auto dot = strchr(filename, '.');
+  if (dot == nullptr) return false;
+  const auto ext = dot + 1;
+  if (strcmp(ext, "hpp") != 0 && strcmp(ext, "cpp") != 0 &&
+      strcmp(ext, "cc") != 0)
+    return false;
+  return true;
+}
+
 int main(int argc, char** argv) {
   std::tie(argc, argv) = parseFlags(argc, argv);
 
@@ -138,20 +150,29 @@ int main(int argc, char** argv) {
     return 1;
   }
 
+  auto filename = argv[1];
+
+  if (!HasCorrectExt(filename)) {
+    std::fprintf(stderr,
+                 "incorrect file extension; must be one of .hpp, .cpp, .cc\n");
+    return 1;
+  }
+
   for (auto i = 2; i < argc; ++i) {
     wanted.push_back(argv[i]);
   }
 
   auto index = clang_createIndex(0, 0);
 
-  auto translationUnit = clang_parseTranslationUnit(
-      index, argv[1], nullptr, 0, nullptr, 0, CXTranslationUnit_None);
-  if (translationUnit == nullptr) {
-    std::cerr << "Unable to parse translation unit. Quitting.\n";
+  CXTranslationUnit tu;
+  auto err = clang_parseTranslationUnit2(index, filename, nullptr, 0, nullptr,
+                                         0, CXTranslationUnit_None, &tu);
+  if (err != CXError_Success) {
+    std::fprintf(stderr, "error while parsing file: %d\n", err);
     return 1;
   }
 
-  auto cursor = clang_getTranslationUnitCursor(translationUnit);
+  auto cursor = clang_getTranslationUnitCursor(tu);
   clang_visitChildren(cursor, visitor, nullptr);
 
   auto namespaceFlag = FindFlag(fNamespace, -1);
@@ -197,6 +218,6 @@ int main(int argc, char** argv) {
     printf("\n#endif\n");
   }
 
-  clang_disposeTranslationUnit(translationUnit);
+  clang_disposeTranslationUnit(tu);
   clang_disposeIndex(index);
 }
