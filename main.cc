@@ -100,6 +100,16 @@ static Flag* FindFlag(const char* name, int n) {
   return nullptr;
 }
 
+static bool AllEnumsFound() {
+  for (auto e : wanted) {
+    if (FindEntry(entries, e) == -1) {
+      std::fprintf(stderr, "enum '%s' not found\n", e);
+      return false;
+    }
+  }
+  return true;
+}
+
 static std::pair<int, char**> parseFlags(int argc, char** argv) {
   int n = 0;
   for (int i = 1; i < argc; ++i) {
@@ -179,6 +189,8 @@ int main(int argc, char** argv) {
     std::fprintf(stderr, "no enums found with the given names\n");
     return 1;
   }
+
+  if (!AllEnumsFound()) return 1;
 
   auto namespaceFlag = FindFlag(fNamespace, -1);
   auto inGuardFlag = FindFlag(fIncludeGuard, -1);
