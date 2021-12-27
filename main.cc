@@ -153,6 +153,7 @@ std::vector<std::string> SplitNamespaces(std::string_view value) {
   std::vector<std::string> r;
   for (size_t pos = 0, len = 0; pos < value.size(); pos += len + 2) {
     len = value.find("::");
+    if (len == std::string_view::npos) len = value.size();
     r.push_back(std::string(value.data() + pos, len));
   }
   return r;
