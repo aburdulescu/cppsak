@@ -151,10 +151,12 @@ static bool HasCorrectExt(const char* filename) {
 std::vector<std::string> SplitNamespaces(std::string_view value) {
   if (value.empty()) return {};
   std::vector<std::string> r;
+  auto v = value;
   for (size_t pos = 0, len = 0; pos < value.size(); pos += len + 2) {
-    len = value.find("::");
-    if (len == std::string_view::npos) len = value.size();
+    len = v.find("::");
+    if (len == std::string_view::npos) len = v.size();
     r.push_back(std::string(value.data() + pos, len));
+    v.remove_prefix(len + 2);
   }
   return r;
 }
