@@ -3,6 +3,7 @@
 #include <cstring>
 #include <functional>
 #include <iostream>
+#include <string_view>
 #include <vector>
 
 struct Entry {
@@ -147,6 +148,16 @@ static bool HasCorrectExt(const char* filename) {
   return true;
 }
 
+std::vector<std::string> SplitNamespaces(std::string_view value) {
+  if (value.empty()) return {};
+  std::vector<std::string> r;
+  for (size_t pos = 0, len = 0; pos < value.size(); pos += len + 2) {
+    len = value.find("::");
+    r.push_back(std::string(value.data() + pos, len));
+  }
+  return r;
+}
+
 int main(int argc, char** argv) {
   std::tie(argc, argv) = parseFlags(argc, argv);
 
@@ -192,8 +203,11 @@ int main(int argc, char** argv) {
 
   if (!AllEnumsFound()) return 1;
 
-  auto namespaceFlag = FindFlag(fNamespace, -1);
-  auto inGuardFlag = FindFlag(fIncludeGuard, -1);
+  const auto namespaceFlag = FindFlag(fNamespace, -1);
+  const auto inGuardFlag = FindFlag(fIncludeGuard, -1);
+
+  std::vector<std::string> namespaces;
+  if (namespaceFlag->active) namespaces = SplitNamespaces(namespaceFlag->value);
 
   printf("// GENERATED FILE, DO NOT EDIT!\n\n");
 
@@ -202,7 +216,7 @@ int main(int argc, char** argv) {
            inGuardFlag->value);
   }
   if (namespaceFlag->active) {
-    printf("namespace %s {\n", namespaceFlag->value);
+    for (const auto& n : namespaces) printf("namespace %s {\n", n.c_str());
   }
 
   for (const auto& entry : entries) {
@@ -227,7 +241,8 @@ int main(int argc, char** argv) {
   }
 
   if (namespaceFlag->active) {
-    printf("\n} // %s\n", namespaceFlag->value);
+    printf("\n");
+    for (const auto& n : namespaces) printf("} // %s\n", n.c_str());
   }
   if (inGuardFlag->active) {
     printf("\n#endif\n");
