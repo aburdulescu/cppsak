@@ -1,3 +1,2 @@
 - add help message
-- add tests
-- use static libclang
+- add enum parent namespaces to enum name

@@ -223,10 +223,9 @@ int main(int argc, char** argv) {
   }
 
   for (const auto& entry : entries) {
-    printf("\nstatic const char* const * EnumNames_%s[] = {\n",
-           entry.name.c_str());
+    printf("\nstatic const char* EnumNames_%s[] = {\n", entry.name.c_str());
     for (const auto& literal : entry.literals)
-      printf("    \"%s\",\n", literal.c_str());
+      printf("    \"%s::%s\",\n", entry.name.c_str(), literal.c_str());
     printf("};\n\n");
 
     printf(
@@ -234,7 +233,8 @@ int main(int argc, char** argv) {
         "{\n"
         "    if (v < %s::%s || v > %s::%s)\n"
         "        return \"\";\n"
-        "    const size_t index = static_cast<size_t>(v - %s::%s);\n"
+        "    const auto index = static_cast<int>(v) - "
+        "static_cast<int>(%s::%s);\n"
         "    return EnumNames_%s[index];\n"
         "}\n",
         entry.name.c_str(), entry.name.c_str(), entry.name.c_str(),

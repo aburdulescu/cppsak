@@ -2,7 +2,7 @@
 
 namespace test {
 enum class Foo : uint32_t {
-  a=1,
+  a = 1,
   b,
   c,
 };
@@ -24,4 +24,7 @@ enum {
   b,
   c,
 };
+
+#include "foobar.hpp"
+
 }  // namespace test

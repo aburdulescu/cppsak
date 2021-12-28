@@ -17,7 +17,7 @@ if (ASAN)
   string(APPEND CMAKE_CXX_FLAGS " -fsanitize=address,undefined")
 endif()
 
-add_executable(enums main.cc)
+add_executable(enums main.cpp)
 
 find_library(LIBCLANG libclang.so)
 
