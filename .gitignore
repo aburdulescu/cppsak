@@ -1,4 +1,4 @@
 /.cache
 /b/
 /compile_commands.json
-/llvm
+/llvm-project*

@@ -7,7 +7,7 @@ project(enums)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_C_COMPILER_LAUNCHER ccache)
 set(CMAKE_CXX_COMPILER_LAUNCHER ccache)
-set(CMAKE_BUILD_TYPE RelWithDebInfo)
+set(CMAKE_BUILD_TYPE Release)
 
 option(ASAN "Use AddressSanitizer" OFF)
 
@@ -17,12 +17,8 @@ if (ASAN)
   string(APPEND CMAKE_CXX_FLAGS " -fsanitize=address,undefined")
 endif()
 
+add_subdirectory(llvm-project/llvm)
+
 add_executable(enums main.cpp)
-
-find_library(LIBCLANG libclang.so)
-
-message(STATUS "LIBCLANG=${LIBCLANG}")
-
-target_link_libraries(enums PRIVATE ${LIBCLANG})
-
-install(TARGETS enums DESTINATION bin)
+target_include_directories(enums PRIVATE llvm-project/clang/include)
+target_link_libraries(enums PRIVATE libclang)

@@ -1,29 +1,14 @@
 # enum2s
 
-## Install dependencies
-
-### libclang
-
-- via package manager(e.g. Deabian)
+### Build
 
 ``` shell
-sudo apt install libclang-dev
+./build.sh
 ```
 
-- download precompiled lib from LLVM release page
+### Install
 
-``` shell
-wget https://github.com/llvm/llvm-project/releases/download/llvmorg-13.0.0/clang+llvm-13.0.0-x86_64-linux-gnu-ubuntu-20.04.tar.xz
-tar xf clang+llvm-13.0.0-x86_64-linux-gnu-ubuntu-20.04.tar.xz -C /usr/local/ --strip 1
-```
-
-## Build and install
-
-``` shell
-cmake -S . -B b
-cmake --build b
-sudo cmake --build b --target install
-```
+Copy `b/enums` executable somewhere in your PATH(e.g. `/usr/local/bin`).
 
 ## Run
 
