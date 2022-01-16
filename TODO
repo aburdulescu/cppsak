@@ -1,2 +1,4 @@
 - add help message
+- add version flag
+- add release with precompiled binary(for linux_amd64 for now) and sha512 checksum
 - add enum parent namespaces to enum name
