@@ -4,7 +4,7 @@ Generate code for pretty-printing C++ enums.
 
 ## Download
 
-Go to the [latest](https://github.com/aburdulescu/enums/releases) release and:
+Go to the [latest](https://github.com/aburdulescu/enums/releases/latest) release and:
 
 - download the attached archive(for your CPU arch)
 - download its corresponding SHA512 hash
