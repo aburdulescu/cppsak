@@ -8,7 +8,7 @@ Go to the [latest](https://github.com/aburdulescu/enums/releases/latest) release
 
 - download the attached archive(for your CPU arch)
 - download its corresponding SHA512 hash
-- verify the hash: `sha512sum -c hash_file`. If this failed stop and [submit an issue](https://github.com/aburdulescu/enums/issues/new).
+- verify the hash: `sha512sum -c hash_file`. If this failed, stop and [submit an issue](https://github.com/aburdulescu/enums/issues/new).
 - ungzip the archive
 
 Optionally, if you want to install it, you can copy it somewhere in your `PATH`(e.g. `/usr/local/bin`).
