@@ -1,16 +1,16 @@
-# enum2s
+# enums
 
-### Build
+Generate code for pretty-printing C++ enums.
 
-``` shell
-./build.sh
-```
+## Download
 
-### Install
+Go to the [latest]() release, download attached archive(`enums.gz`) and ungzip it.
 
-Copy `b/enums` executable somewhere in your PATH(e.g. `/usr/local/bin`).
+Optionally, you can copy it somewhere in your `PATH`(e.g. `/usr/local/bin`).
 
-## Run
+If you want to build it from source follow [these](./doc/build_from_src.md) instructions.
+
+## Usage
 
 ``` shell
 enums [FLAGS] inputfile.[ch]pp enum_name1...enum_nameN

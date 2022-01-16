@@ -12,6 +12,8 @@ fi
 
 rm -rf $builddir
 
+export CCACHE_DIR=/ccache
+
 cmake \
     -S . \
     -B $builddir \
