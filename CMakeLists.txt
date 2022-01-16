@@ -23,4 +23,4 @@ add_subdirectory(llvm-project/llvm)
 
 add_executable(enums main.cpp)
 target_include_directories(enums PRIVATE llvm-project/clang/include)
-target_link_libraries(enums PRIVATE libclang)
+target_link_libraries(enums PRIVATE libclang -static)
