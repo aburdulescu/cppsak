@@ -4,7 +4,7 @@ Generate code for pretty-printing C++ enums.
 
 ## Download
 
-Go to the [latest]() release, download attached archive(`enums.gz`) and ungzip it.
+Go to the [latest]() release, download the attached archive(for your CPU arch) and ungzip it.
 
 Optionally, you can copy it somewhere in your `PATH`(e.g. `/usr/local/bin`).
 
