@@ -19,6 +19,7 @@ Go to the [latest](https://github.com/aburdulescu/enums/releases/latest) release
 - download its corresponding SHA512 hash
 - verify the hash: `sha512sum -c enums.gz`. If this failed, stop and [submit an issue](https://github.com/aburdulescu/enums/issues/new).
 - gunzip the archive
+- make it executable: `chmod +x enums`
 
 Optionally, if you want to install it, you can copy it somewhere in your `PATH`(e.g. `/usr/local/bin`).
 
