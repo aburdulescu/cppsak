@@ -170,8 +170,7 @@ Flags:
     -h, --help             print this message
     --version              print version
     --namespace=value      add given namespace to the generated file
-    --include-guard=value  add given include guard to the generated file
-)"""";
+    --include-guard=value  add given include guard to the generated file)"""";
 
 int main(int argc, char** argv) {
   if (argc < 2) {
