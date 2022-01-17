@@ -2,7 +2,7 @@
 
 Generate code for pretty-printing C++ enums.
 
-## Supported platforms:
+## Supported platforms
 
 For now only `Linux x86/x86_64` systems are supported.
 
