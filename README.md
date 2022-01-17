@@ -11,10 +11,6 @@ Other POSIX systems/CPU architectures may be added if needed.
 For the missing platforms the tool can be compiled from source,
 see [here](./doc/build_from_src.md).
 
-### CPU architectures
-
-For now only `amd64`, other popular architectures if needed.
-
 ## Download
 
 Go to the [latest](https://github.com/aburdulescu/enums/releases/latest) release and:
