@@ -4,7 +4,7 @@ Generate code for pretty-printing C++ enums.
 
 ## Supported platforms:
 
-For now only `Linux amd64` systems are supported.
+For now only `Linux x86/x86_64` systems are supported.
 
 Other POSIX systems/CPU architectures may be added if needed.
 

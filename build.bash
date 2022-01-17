@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 llvm_version=13.0.0
 builddir=b
 
@@ -20,7 +22,8 @@ cmake \
     -G Ninja \
     -DLIBCLANG_BUILD_STATIC=ON \
     -DLLVM_ENABLE_PROJECTS="clang" \
-    -DLLVM_ENABLE_PIC=OFF
+    -DLLVM_ENABLE_PIC=OFF \
+    -DLLVM_TARGETS_TO_BUILD=X86
 
 cmake --build $builddir --target libclang.a
 cmake --build $builddir --target enums
