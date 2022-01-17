@@ -139,7 +139,7 @@ static std::pair<int, char**> parseFlags(int argc, char** argv) {
 }
 
 static bool HasCorrectExt(const char* filename) {
-  const auto dot = strchr(filename, '.');
+  const auto dot = strrchr(filename, '.');
   if (dot == nullptr) return false;
   const auto ext = dot + 1;
   if (strcmp(ext, "hpp") != 0 && strcmp(ext, "cpp") != 0 &&
@@ -182,7 +182,7 @@ int main(int argc, char** argv) {
     if (strcmp(argv[1], "--version") == 0) {
       std::printf("%s\n", kVersion);
       return 0;
-    } else if (strcmp(argv[1], "--help") || strcmp(argv[1], "-h") == 0) {
+    } else if (strcmp(argv[1], "--help") == 0 || strcmp(argv[1], "-h") == 0) {
       std::printf("%s\n", kUsage);
       return 0;
     }
