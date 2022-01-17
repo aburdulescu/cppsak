@@ -2,6 +2,11 @@
 
 Generate code for pretty-printing C++ enums.
 
+## Supported platforms:
+
+- OS: for now only Linux based OSes are supported, other popular POSIX based OSes may be supported if needed.
+- CPU architectures: fow now only amd64, other popular architectures if needed.
+
 ## Download
 
 Go to the [latest](https://github.com/aburdulescu/enums/releases/latest) release and:
