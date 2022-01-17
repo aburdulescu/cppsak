@@ -4,8 +4,16 @@ Generate code for pretty-printing C++ enums.
 
 ## Supported platforms:
 
-- OS: for now only Linux based OSes are supported, other popular POSIX based OSes may be supported if needed.
-- CPU architectures: fow now only amd64, other popular architectures if needed.
+For now only `Linux amd64` systems are supported.
+
+Other POSIX systems/CPU architectures may be added if needed.
+
+For the missing platforms the tool can be compiled from source,
+see [here](./doc/build_from_src.md).
+
+### CPU architectures
+
+For now only `amd64`, other popular architectures if needed.
 
 ## Download
 
@@ -14,13 +22,9 @@ Go to the [latest](https://github.com/aburdulescu/enums/releases/latest) release
 - download the attached archive(for your CPU arch)
 - download its corresponding SHA512 hash
 - verify the hash: `sha512sum -c hash_file`. If this failed, stop and [submit an issue](https://github.com/aburdulescu/enums/issues/new).
-- ungzip the archive
+- gunzip the archive
 
 Optionally, if you want to install it, you can copy it somewhere in your `PATH`(e.g. `/usr/local/bin`).
-
-And that's it!
-
-Note: If you want to build it from source follow [these](./doc/build_from_src.md) instructions.
 
 ## Usage
 

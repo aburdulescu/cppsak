@@ -22,6 +22,7 @@ cmake \
     -DLLVM_ENABLE_PROJECTS="clang" \
     -DLLVM_ENABLE_PIC=OFF
 
-cmake --build $builddir
+cmake --build $builddir --target libclang.a
+cmake --build $builddir --target enums
 
 strip b/enums
