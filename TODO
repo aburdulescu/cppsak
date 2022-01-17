@@ -1,7 +1,5 @@
 TODOs:
-- add help message
-- add version flag
-- add release with precompiled binary(for linux_amd64 for now) and sha512 checksum
+- none
 
 MAYBEs:
 - make enums subcomand and rename to c++ast to be able to add future subcommands?

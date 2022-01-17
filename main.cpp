@@ -161,7 +161,34 @@ std::vector<std::string> SplitNamespaces(std::string_view value) {
   return r;
 }
 
+static const char* kVersion = "v0.1";
+
+static const char* kUsage =
+    R""""(Usage: enums [FLAGS] inputfile.[ch]pp enum_name1...enum_nameN
+
+Flags:
+    -h, --help             print this message
+    --version              print version
+    --namespace=value      add given namespace to the generated file
+    --include-guard=value  add given include guard to the generated file
+)"""";
+
 int main(int argc, char** argv) {
+  if (argc < 2) {
+    std::fprintf(stderr, "%s\n", kUsage);
+    return 1;
+  }
+
+  if (argc > 1) {
+    if (strcmp(argv[1], "--version") == 0) {
+      std::printf("%s\n", kVersion);
+      return 0;
+    } else if (strcmp(argv[1], "--help") || strcmp(argv[1], "-h") == 0) {
+      std::printf("%s\n", kUsage);
+      return 0;
+    }
+  }
+
   std::tie(argc, argv) = parseFlags(argc, argv);
 
   if (argc < 2) {

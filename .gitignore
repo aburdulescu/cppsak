@@ -2,3 +2,4 @@
 /b/
 /compile_commands.json
 /llvm-project*
+/release-*
