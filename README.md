@@ -80,7 +80,7 @@ enum class Foo : uint32_t {
   c,
 };
 
-#include "input.inc"
+#include "input_generated.inc"
 
 }  // namespace test
 
