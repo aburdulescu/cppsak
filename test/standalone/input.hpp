@@ -25,6 +25,4 @@ enum {
   c,
 };
 
-#include "foobar.hpp"
-
 }  // namespace test

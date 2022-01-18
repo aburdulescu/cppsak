@@ -19,8 +19,14 @@ if (ASAN)
   string(APPEND CMAKE_CXX_FLAGS " -fsanitize=address,undefined")
 endif()
 
+if (NOT ENUMS_VERSION)
+  message(FATAL_ERROR "Tool version not set")
+endif()
+message(STATUS "Tool version=${ENUMS_VERSION}")
+
 add_subdirectory(llvm-project/llvm)
 
 add_executable(enums main.cpp)
+target_compile_definitions(enums PRIVATE ENUMS_VERSION="${ENUMS_VERSION}")
 target_include_directories(enums PRIVATE llvm-project/clang/include)
 target_link_libraries(enums PRIVATE libclang -static)

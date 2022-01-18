@@ -20,6 +20,7 @@ cmake \
     -S . \
     -B $builddir \
     -G Ninja \
+    -DENUMS_VERSION=$(cat version.txt) \
     -DLIBCLANG_BUILD_STATIC=ON \
     -DLLVM_ENABLE_PROJECTS="clang" \
     -DLLVM_ENABLE_PIC=OFF \

@@ -161,8 +161,6 @@ std::vector<std::string> SplitNamespaces(std::string_view value) {
   return r;
 }
 
-static const char* kVersion = "v0.1";
-
 static const char* kUsage =
     R""""(Usage: enums [FLAGS] inputfile.[ch]pp enum_name1...enum_nameN
 
@@ -180,7 +178,7 @@ int main(int argc, char** argv) {
 
   if (argc > 1) {
     if (strcmp(argv[1], "--version") == 0) {
-      std::printf("%s\n", kVersion);
+      std::printf("%s\n", ENUMS_VERSION);
       return 0;
     } else if (strcmp(argv[1], "--help") == 0 || strcmp(argv[1], "-h") == 0) {
       std::printf("%s\n", kUsage);
@@ -249,19 +247,19 @@ int main(int argc, char** argv) {
   }
 
   for (const auto& entry : entries) {
-    printf("\nstatic const char* EnumNames_%s[] = {\n", entry.name.c_str());
+    printf("\nstatic const char* EnumNames%s[] = {\n", entry.name.c_str());
     for (const auto& literal : entry.literals)
-      printf("    \"%s::%s\",\n", entry.name.c_str(), literal.c_str());
+      printf("    \"%s\",\n", literal.c_str());
     printf("};\n\n");
 
     printf(
-        "inline const char* EnumName_%s(%s v)\n"
+        "inline const char* EnumName%s(%s v)\n"
         "{\n"
         "    if (v < %s::%s || v > %s::%s)\n"
         "        return \"\";\n"
         "    const auto index = static_cast<int>(v) - "
         "static_cast<int>(%s::%s);\n"
-        "    return EnumNames_%s[index];\n"
+        "    return EnumNames%s[index];\n"
         "}\n",
         entry.name.c_str(), entry.name.c_str(), entry.name.c_str(),
         entry.literals.front().c_str(), entry.name.c_str(),

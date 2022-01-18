@@ -2,7 +2,7 @@
 
 set -x
 
-version=0.1
+version=$(cat version.txt)
 releasedir=release-$version
 
 rm -rf $releasedir
