@@ -232,7 +232,7 @@ static CXChildVisitResult visitor(CXCursor cursor, CXCursor parent,
   clang_disposeString(kindSpelling);
   clang_disposeString(parentSpelling);
 
-  return CXChildVisit_Recurse;
+  return result;
 }
 
 struct Flag {
