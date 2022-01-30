@@ -78,11 +78,65 @@ static bool WantedEnum(std::vector<const char*> wanted, const char* name) {
 //   return CXChildVisit_Recurse;
 // }
 
+std::string_view TrimPrefix(std::string_view s, char c) {
+  for (auto i = 0; s[i] == c && i < s.size(); ++i) {
+    s.remove_prefix(1);
+  }
+  return s;
+}
+
+std::string_view TrimSuffix(std::string_view s, char c) {
+  for (auto i = s.size() - 1; s[i] == c && i >= 0; --i) {
+    s.remove_suffix(1);
+  }
+  return s;
+}
+
+std::vector<std::string_view> StringSplit(std::string_view s) {
+  std::vector<std::string_view> r;
+  s = TrimPrefix(s, ' ');
+  while (true) {
+    auto p = s.find_first_of(' ');
+    if (p == std::string_view::npos) break;
+    r.emplace_back(s.substr(0, p));
+    s.remove_prefix(p + 1);
+  }
+  r.emplace_back(s);
+  return r;
+}
+
 struct MethodData {
   std::string ReturnType;
   std::string Name;
   std::string Args;
   std::string Qualifiers;
+
+  void Fill(std::string_view name, std::string_view type) {
+    Name = name;
+
+    auto startOfArgs = type.find_first_of('(');
+
+    ReturnType = TrimSuffix(type.substr(0, startOfArgs), ' ');
+
+    type.remove_prefix(startOfArgs + 1);
+
+    auto endOfArgs = type.find_first_of(')');
+
+    // TODO: not enough, each arg needs to be enclosed in ()
+    Args = type.substr(0, endOfArgs);
+
+    type.remove_prefix(endOfArgs + 1);
+
+    auto qualifiers = StringSplit(type);
+    for (size_t i = 0; i < qualifiers.size(); ++i) {
+      Qualifiers += qualifiers[i];
+      if (i != qualifiers.size() - 1) {
+        Qualifiers += ", ";
+      }
+    }
+    if (!Qualifiers.empty()) Qualifiers += ", ";
+    Qualifiers += "override";
+  }
 };
 
 struct ClassData {
@@ -91,27 +145,6 @@ struct ClassData {
 };
 
 static ClassData gClassData;
-
-static MethodData NewMethodData(std::string_view name, std::string_view type) {
-  // ret_type (arg0, arg1, ...) qualifier0 qualifier1 ...
-
-  MethodData d;
-  d.Name = name;
-
-  // search for first space => 0
-
-  auto startOfArgs = type.find_first_of('(');
-
-  d.ReturnType = type.substr(0, startOfArgs);
-
-  type.remove_prefix(startOfArgs + 1);
-
-  auto endOfArgs = type.find_first_of(')');
-
-  d.Args = type.substr(0, endOfArgs);
-
-  return d;
-}
 
 static CXChildVisitResult visitor(CXCursor cursor, CXCursor parent,
                                   CXClientData client_data) {
@@ -125,9 +158,9 @@ static CXChildVisitResult visitor(CXCursor cursor, CXCursor parent,
     auto type = clang_getCursorType(cursor);
     auto typeSpelling = clang_getTypeSpelling(type);
 
-    std::fprintf(stderr, "| -kind: %s(%d), spelling: %s, type: %s\n",
-                 clang_getCString(kindSpelling), kind,
-                 clang_getCString(spelling), clang_getCString(typeSpelling));
+    std::fprintf(stderr, "| -%s(%d), %s, %s\n", clang_getCString(kindSpelling),
+                 kind, clang_getCString(spelling),
+                 clang_getCString(typeSpelling));
 
     switch (kind) {
       case CXCursor_ClassDecl: {
@@ -137,8 +170,12 @@ static CXChildVisitResult visitor(CXCursor cursor, CXCursor parent,
         // tbd
       } break;
       case CXCursor_CXXMethod: {
-        gClassData.Methods.emplace_back(NewMethodData(
-            clang_getCString(spelling), clang_getCString(typeSpelling)));
+        if (!clang_CXXMethod_isVirtual(cursor)) {
+          return CXChildVisit_Recurse;
+        }
+        MethodData d;
+        d.Fill(clang_getCString(spelling), clang_getCString(typeSpelling));
+        gClassData.Methods.emplace_back(d);
       } break;
       default:
         break;
@@ -300,9 +337,9 @@ int main(int argc, char** argv) {
   std::printf("class Mock%s: public %s {\n", gClassData.Name.c_str(),
               gClassData.Name.c_str());
   for (const auto& method : gClassData.Methods) {
-    std::printf("    MOCK_METHOD((%s), %s, (%s), ());\n",
+    std::printf("    MOCK_METHOD((%s), %s, (%s), (%s));\n",
                 method.ReturnType.c_str(), method.Name.c_str(),
-                method.Args.c_str());
+                method.Args.c_str(), method.Qualifiers.c_str());
   }
   std::printf("};\n");
 
