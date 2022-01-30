@@ -78,8 +78,18 @@ static bool WantedEnum(std::vector<const char*> wanted, const char* name) {
 //   return CXChildVisit_Recurse;
 // }
 
+namespace strings {
+std::string Join(std::vector<std::string> s, std::string_view sep) {
+  std::string r;
+  for (size_t i = 0; i < s.size(); ++i) {
+    r += s[i];
+    if (i != s.size() - 1) r += std::string(sep);
+  }
+  return r;
+}
+
 std::string_view TrimPrefix(std::string_view s, char c) {
-  for (auto i = 0; s[i] == c && i < s.size(); ++i) {
+  for (size_t i = 0; s[i] == c && i < s.size(); ++i) {
     s.remove_prefix(1);
   }
   return s;
@@ -92,11 +102,11 @@ std::string_view TrimSuffix(std::string_view s, char c) {
   return s;
 }
 
-std::vector<std::string_view> StringSplit(std::string_view s) {
+std::vector<std::string_view> Split(std::string_view s, char sep) {
   std::vector<std::string_view> r;
   s = TrimPrefix(s, ' ');
   while (true) {
-    auto p = s.find_first_of(' ');
+    auto p = s.find_first_of(sep);
     if (p == std::string_view::npos) break;
     r.emplace_back(s.substr(0, p));
     s.remove_prefix(p + 1);
@@ -105,37 +115,66 @@ std::vector<std::string_view> StringSplit(std::string_view s) {
   return r;
 }
 
+std::string Enclose(std::string_view s) {
+  if (s.find_first_of(',') == std::string::npos) {
+    return std::string{s};
+  }
+  std::string r{s};
+  r = "(" + r;
+  r.push_back(')');
+  return r;
+}
+
+}  // namespace strings
+
 struct MethodData {
   std::string ReturnType;
   std::string Name;
   std::string Args;
   std::string Qualifiers;
 
-  void Fill(std::string_view name, std::string_view type) {
-    Name = name;
-
-    auto startOfArgs = type.find_first_of('(');
-
-    ReturnType = TrimSuffix(type.substr(0, startOfArgs), ' ');
-
-    type.remove_prefix(startOfArgs + 1);
-
-    auto endOfArgs = type.find_first_of(')');
-
-    // TODO: not enough, each arg needs to be enclosed in ()
-    Args = type.substr(0, endOfArgs);
-
-    type.remove_prefix(endOfArgs + 1);
-
-    auto qualifiers = StringSplit(type);
-    for (size_t i = 0; i < qualifiers.size(); ++i) {
-      Qualifiers += qualifiers[i];
-      if (i != qualifiers.size() - 1) {
-        Qualifiers += ", ";
-      }
+  void Fill(CXCursor cursor) {
+    {
+      auto spelling = clang_getCursorSpelling(cursor);
+      Name = clang_getCString(spelling);
+      clang_disposeString(spelling);
     }
-    if (!Qualifiers.empty()) Qualifiers += ", ";
-    Qualifiers += "override";
+
+    auto type = clang_getCursorType(cursor);
+
+    {
+      auto resultType = clang_getTypeSpelling(clang_getResultType(type));
+      ReturnType = strings::Enclose(clang_getCString(resultType));
+      clang_disposeString(resultType);
+    }
+
+    {
+      auto nargs = clang_getNumArgTypes(type);
+
+      std::vector<std::string> args;
+      args.reserve(nargs);
+
+      for (auto i = 0; i < nargs; ++i) {
+        auto arg = clang_getTypeSpelling(clang_getArgType(type, i));
+        args.emplace_back(strings::Enclose(clang_getCString(arg)));
+        clang_disposeString(arg);
+      }
+
+      Args = strings::Join(args, ", ");
+    }
+
+    {
+      if (clang_CXXMethod_isConst(cursor)) Qualifiers += "const";
+
+      if (clang_getExceptionSpecificationType(type) ==
+          CXCursor_ExceptionSpecificationKind_BasicNoexcept) {
+        if (!Qualifiers.empty()) Qualifiers += ", ";
+        Qualifiers += "noexcept";
+      }
+
+      if (!Qualifiers.empty()) Qualifiers += ", ";
+      Qualifiers += "override";
+    }
   }
 };
 
@@ -150,41 +189,48 @@ static CXChildVisitResult visitor(CXCursor cursor, CXCursor parent,
                                   CXClientData client_data) {
   (void)client_data;
 
+  auto parentSpelling = clang_getCursorSpelling(parent);
   auto kind = clang_getCursorKind(cursor);
+  auto spelling = clang_getCursorSpelling(cursor);
+  auto kindSpelling = clang_getCursorKindSpelling(kind);
+  auto type = clang_getCursorType(cursor);
+  auto typeSpelling = clang_getTypeSpelling(type);
 
-  {
-    auto spelling = clang_getCursorSpelling(cursor);
-    auto kindSpelling = clang_getCursorKindSpelling(kind);
-    auto type = clang_getCursorType(cursor);
-    auto typeSpelling = clang_getTypeSpelling(type);
+  CXChildVisitResult result = CXChildVisit_Recurse;
 
-    std::fprintf(stderr, "| -%s(%d), %s, %s\n", clang_getCString(kindSpelling),
-                 kind, clang_getCString(spelling),
-                 clang_getCString(typeSpelling));
+  std::fprintf(stderr, "| -%s(%d), %s, %s\n", clang_getCString(kindSpelling),
+               kind, clang_getCString(spelling),
+               clang_getCString(typeSpelling));
 
-    switch (kind) {
-      case CXCursor_ClassDecl: {
-        gClassData.Name = clang_getCString(spelling);
-      } break;
-      case CXCursor_ClassTemplate: {
-        // tbd
-      } break;
-      case CXCursor_CXXMethod: {
-        if (!clang_CXXMethod_isVirtual(cursor)) {
-          return CXChildVisit_Recurse;
-        }
-        MethodData d;
-        d.Fill(clang_getCString(spelling), clang_getCString(typeSpelling));
-        gClassData.Methods.emplace_back(d);
-      } break;
-      default:
+  switch (kind) {
+    case CXCursor_ClassDecl: {
+      gClassData.Name = clang_getCString(spelling);
+    } break;
+    case CXCursor_ClassTemplate: {
+      result = CXChildVisit_Continue;
+    } break;
+    case CXCursor_CXXMethod: {
+      if (!WantedEnum(wanted, clang_getCString(parentSpelling))) {
+        result = CXChildVisit_Continue;
         break;
-    }
-
-    clang_disposeString(typeSpelling);
-    clang_disposeString(spelling);
-    clang_disposeString(kindSpelling);
+      }
+      if (!clang_CXXMethod_isVirtual(cursor)) {
+        result = CXChildVisit_Continue;
+        break;
+      }
+      MethodData d;
+      d.Fill(cursor);
+      gClassData.Methods.emplace_back(d);
+    } break;
+    default:
+      result = CXChildVisit_Continue;
+      break;
   }
+
+  clang_disposeString(typeSpelling);
+  clang_disposeString(spelling);
+  clang_disposeString(kindSpelling);
+  clang_disposeString(parentSpelling);
 
   return CXChildVisit_Recurse;
 }
@@ -334,10 +380,12 @@ int main(int argc, char** argv) {
   auto cursor = clang_getTranslationUnitCursor(tu);
   clang_visitChildren(cursor, visitor, nullptr);
 
-  std::printf("class Mock%s: public %s {\n", gClassData.Name.c_str(),
-              gClassData.Name.c_str());
+  std::printf(
+      "class Mock%s: public %s {\n"
+      "public:\n",
+      gClassData.Name.c_str(), gClassData.Name.c_str());
   for (const auto& method : gClassData.Methods) {
-    std::printf("    MOCK_METHOD((%s), %s, (%s), (%s));\n",
+    std::printf("    MOCK_METHOD(%s, %s, (%s), (%s));\n",
                 method.ReturnType.c_str(), method.Name.c_str(),
                 method.Args.c_str(), method.Qualifiers.c_str());
   }
