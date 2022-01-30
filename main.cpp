@@ -6,6 +6,9 @@
 #include <string_view>
 #include <vector>
 
+#include "strings.hpp"
+
+namespace enums {
 struct Entry {
   std::string name;
   std::vector<std::string> literals;
@@ -17,9 +20,9 @@ static int FindEntry(const std::vector<Entry>& entries, const char* name) {
   return -1;
 }
 
-std::vector<Entry> entries;
+std::vector<Entry> gEntries;
 
-std::vector<const char*> wanted;
+std::vector<const char*> gWanted;
 
 static bool WantedEnum(std::vector<const char*> wanted, const char* name) {
   for (auto e : wanted)
@@ -27,105 +30,62 @@ static bool WantedEnum(std::vector<const char*> wanted, const char* name) {
   return false;
 }
 
-// static CXChildVisitResult visitor(CXCursor cursor, CXCursor parent,
-//                                   CXClientData client_data) {
-//   (void)client_data;
-
-//   auto kind = clang_getCursorKind(cursor);
-
-//   {
-//     auto spelling = clang_getCursorSpelling(cursor);
-//     auto kindSpelling = clang_getCursorKindSpelling(kind);
-//     std::printf("%s, %s, %d\n", clang_getCString(spelling),
-//                 clang_getCString(kindSpelling), kind);
-//     clang_disposeString(spelling);
-//     clang_disposeString(kindSpelling);
-//   }
-
-//   switch (kind) {
-//     case CXCursorKind::CXCursor_EnumDecl: {
-//       if (clang_EnumDecl_isScoped(cursor)) {
-//         auto spelling = clang_getCursorSpelling(cursor);
-//         auto kindSpelling = clang_getCursorKindSpelling(kind);
-
-//         if (WantedEnum(wanted, clang_getCString(spelling))) {
-//           entries.push_back(Entry{clang_getCString(spelling), {}});
-//         }
-
-//         clang_disposeString(spelling);
-//         clang_disposeString(kindSpelling);
-//       }
-
-//     } break;
-//     case CXCursorKind::CXCursor_EnumConstantDecl: {
-//       auto parentSpelling = clang_getCursorSpelling(parent);
-
-//       auto i = FindEntry(entries, clang_getCString(parentSpelling));
-//       if (i != -1) {
-//         auto spelling = clang_getCursorSpelling(cursor);
-
-//         entries[i].literals.push_back(clang_getCString(spelling));
-
-//         clang_disposeString(spelling);
-//       }
-
-//       clang_disposeString(parentSpelling);
-//     } break;
-//     default:
-//       break;
-//   }
-
-//   return CXChildVisit_Recurse;
-// }
-
-namespace strings {
-std::string Join(std::vector<std::string> s, std::string_view sep) {
-  std::string r;
-  for (size_t i = 0; i < s.size(); ++i) {
-    r += s[i];
-    if (i != s.size() - 1) r += std::string(sep);
-  }
-  return r;
+static void printCursor(CXCursor c) {
+  auto spelling = clang_getCursorSpelling(c);
+  auto kind = clang_getCursorKind(c);
+  auto kindSpelling = clang_getCursorKindSpelling(kind);
+  auto typeSpelling = clang_getTypeSpelling(clang_getCursorType(c));
+  std::fprintf(stderr, "| -%s(%d), %s, %s\n", clang_getCString(kindSpelling),
+               kind, clang_getCString(spelling),
+               clang_getCString(typeSpelling));
+  clang_disposeString(typeSpelling);
+  clang_disposeString(spelling);
+  clang_disposeString(kindSpelling);
 }
 
-std::string_view TrimPrefix(std::string_view s, char c) {
-  for (size_t i = 0; s[i] == c && i < s.size(); ++i) {
-    s.remove_prefix(1);
-  }
-  return s;
-}
+static CXChildVisitResult EnumsVisitor(CXCursor cursor, CXCursor parent,
+                                       CXClientData client_data) {
+  (void)client_data;
 
-std::string_view TrimSuffix(std::string_view s, char c) {
-  for (auto i = s.size() - 1; s[i] == c && i >= 0; --i) {
-    s.remove_suffix(1);
-  }
-  return s;
-}
+  auto kind = clang_getCursorKind(cursor);
 
-std::vector<std::string_view> Split(std::string_view s, char sep) {
-  std::vector<std::string_view> r;
-  s = TrimPrefix(s, ' ');
-  while (true) {
-    auto p = s.find_first_of(sep);
-    if (p == std::string_view::npos) break;
-    r.emplace_back(s.substr(0, p));
-    s.remove_prefix(p + 1);
-  }
-  r.emplace_back(s);
-  return r;
-}
+  printCursor(cursor);
 
-std::string Enclose(std::string_view s) {
-  if (s.find_first_of(',') == std::string::npos) {
-    return std::string{s};
-  }
-  std::string r{s};
-  r = "(" + r;
-  r.push_back(')');
-  return r;
-}
+  switch (kind) {
+    case CXCursorKind::CXCursor_EnumDecl: {
+      if (clang_EnumDecl_isScoped(cursor)) {
+        auto spelling = clang_getCursorSpelling(cursor);
+        auto kindSpelling = clang_getCursorKindSpelling(kind);
 
-}  // namespace strings
+        if (WantedEnum(gWanted, clang_getCString(spelling))) {
+          gEntries.push_back(Entry{clang_getCString(spelling), {}});
+        }
+
+        clang_disposeString(spelling);
+        clang_disposeString(kindSpelling);
+      }
+
+    } break;
+    case CXCursorKind::CXCursor_EnumConstantDecl: {
+      auto parentSpelling = clang_getCursorSpelling(parent);
+
+      auto i = FindEntry(gEntries, clang_getCString(parentSpelling));
+      if (i != -1) {
+        auto spelling = clang_getCursorSpelling(cursor);
+
+        gEntries[i].literals.push_back(clang_getCString(spelling));
+
+        clang_disposeString(spelling);
+      }
+
+      clang_disposeString(parentSpelling);
+    } break;
+    default:
+      break;
+  }
+
+  return CXChildVisit_Recurse;
+}
 
 struct MethodData {
   std::string ReturnType;
@@ -185,9 +145,11 @@ struct ClassData {
 
 static ClassData gClassData;
 
-static CXChildVisitResult visitor(CXCursor cursor, CXCursor parent,
-                                  CXClientData client_data) {
+static CXChildVisitResult GmocksVisitor(CXCursor cursor, CXCursor parent,
+                                        CXClientData client_data) {
   (void)client_data;
+
+  printCursor(cursor);
 
   auto parentSpelling = clang_getCursorSpelling(parent);
   auto kind = clang_getCursorKind(cursor);
@@ -198,10 +160,6 @@ static CXChildVisitResult visitor(CXCursor cursor, CXCursor parent,
 
   CXChildVisitResult result = CXChildVisit_Recurse;
 
-  std::fprintf(stderr, "| -%s(%d), %s, %s\n", clang_getCString(kindSpelling),
-               kind, clang_getCString(spelling),
-               clang_getCString(typeSpelling));
-
   switch (kind) {
     case CXCursor_ClassDecl: {
       gClassData.Name = clang_getCString(spelling);
@@ -210,7 +168,7 @@ static CXChildVisitResult visitor(CXCursor cursor, CXCursor parent,
       result = CXChildVisit_Continue;
     } break;
     case CXCursor_CXXMethod: {
-      if (!WantedEnum(wanted, clang_getCString(parentSpelling))) {
+      if (!WantedEnum(gWanted, clang_getCString(parentSpelling))) {
         result = CXChildVisit_Continue;
         break;
       }
@@ -235,32 +193,9 @@ static CXChildVisitResult visitor(CXCursor cursor, CXCursor parent,
   return result;
 }
 
-struct Flag {
-  const char* name{nullptr};
-  bool active{false};
-  char* value{nullptr};
-};
-
-static const char* fNamespace = "--namespace";
-static const char* fIncludeGuard = "--include-guard";
-
-static Flag gFlags[]{
-    Flag{fNamespace},
-    Flag{fIncludeGuard},
-};
-static const size_t gFlagsLen = sizeof(gFlags) / sizeof(Flag);
-
-static Flag* FindFlag(const char* name, int n) {
-  if (n == -1) n = strlen(name);
-  for (size_t i = 0; i < gFlagsLen; ++i) {
-    if (strncmp(name, gFlags[i].name, n) == 0) return &gFlags[i];
-  }
-  return nullptr;
-}
-
 static bool AllEnumsFound() {
-  for (auto e : wanted) {
-    if (FindEntry(entries, e) == -1) {
+  for (auto e : gWanted) {
+    if (FindEntry(gEntries, e) == -1) {
       std::fprintf(stderr, "enum '%s' not found\n", e);
       return false;
     }
@@ -268,7 +203,56 @@ static bool AllEnumsFound() {
   return true;
 }
 
-static std::pair<int, char**> parseFlags(int argc, char** argv) {
+static bool HasCorrectExt(const char* filename) {
+  const auto dot = strrchr(filename, '.');
+  if (dot == nullptr) return false;
+  const auto ext = dot + 1;
+  if (strcmp(ext, "hpp") != 0 && strcmp(ext, "cpp") != 0 &&
+      strcmp(ext, "cc") != 0)
+    return false;
+  return true;
+}
+
+std::vector<std::string> SplitNamespaces(std::string_view value) {
+  if (value.empty()) return {};
+  std::vector<std::string> r;
+  auto v = value;
+  for (size_t pos = 0, len = 0; pos < value.size(); pos += len + 2) {
+    len = v.find("::");
+    if (len == std::string_view::npos) len = v.size();
+    r.push_back(std::string(value.data() + pos, len));
+    v.remove_prefix(len + 2);
+  }
+  return r;
+}
+
+}  // namespace enums
+
+namespace {
+struct Flag {
+  const char* name{nullptr};
+  bool active{false};
+  char* value{nullptr};
+};
+
+const char* fNamespace = "--namespace";
+const char* fIncludeGuard = "--include-guard";
+
+Flag gFlags[]{
+    Flag{fNamespace},
+    Flag{fIncludeGuard},
+};
+const size_t gFlagsLen = sizeof(gFlags) / sizeof(Flag);
+
+Flag* FindFlag(const char* name, int n) {
+  if (n == -1) n = strlen(name);
+  for (size_t i = 0; i < gFlagsLen; ++i) {
+    if (strncmp(name, gFlags[i].name, n) == 0) return &gFlags[i];
+  }
+  return nullptr;
+}
+
+std::pair<int, char**> parseFlags(int argc, char** argv) {
   int n = 0;
   for (int i = 1; i < argc; ++i) {
     if (strncmp(argv[i], "--", 2) != 0) {
@@ -295,31 +279,12 @@ static std::pair<int, char**> parseFlags(int argc, char** argv) {
   return {argc - n, argv + n};
 }
 
-static bool HasCorrectExt(const char* filename) {
-  const auto dot = strrchr(filename, '.');
-  if (dot == nullptr) return false;
-  const auto ext = dot + 1;
-  if (strcmp(ext, "hpp") != 0 && strcmp(ext, "cpp") != 0 &&
-      strcmp(ext, "cc") != 0)
-    return false;
-  return true;
-}
+const char* kUsage =
+    R""""(Usage: enums COMMAND [FLAGS] inputfile.[ch]pp type_name1...type_nameN
 
-std::vector<std::string> SplitNamespaces(std::string_view value) {
-  if (value.empty()) return {};
-  std::vector<std::string> r;
-  auto v = value;
-  for (size_t pos = 0, len = 0; pos < value.size(); pos += len + 2) {
-    len = v.find("::");
-    if (len == std::string_view::npos) len = v.size();
-    r.push_back(std::string(value.data() + pos, len));
-    v.remove_prefix(len + 2);
-  }
-  return r;
-}
-
-static const char* kUsage =
-    R""""(Usage: enums [FLAGS] inputfile.[ch]pp enum_name1...enum_nameN
+Commands:
+    enums   generate code for pretty-printing enums
+    gmocks  generate google mocks
 
 Flags:
     -h, --help             print this message
@@ -327,11 +292,15 @@ Flags:
     --namespace=value      add given namespace to the generated file
     --include-guard=value  add given include guard to the generated file)"""";
 
+}  // namespace
+
 int main(int argc, char** argv) {
   if (argc < 2) {
     std::fprintf(stderr, "%s\n", kUsage);
     return 1;
   }
+
+  CXCursorVisitor visitor;
 
   if (argc > 1) {
     if (strcmp(argv[1], "--version") == 0) {
@@ -340,8 +309,18 @@ int main(int argc, char** argv) {
     } else if (strcmp(argv[1], "--help") == 0 || strcmp(argv[1], "-h") == 0) {
       std::printf("%s\n", kUsage);
       return 0;
+    } else if (strcmp(argv[1], "enums") == 0) {
+      visitor = enums::EnumsVisitor;
+    } else if (strcmp(argv[1], "gmocks") == 0) {
+      visitor = enums::GmocksVisitor;
+    } else {
+      std::fprintf(stderr, "unknown arg '%s'\n", argv[1]);
+      return 1;
     }
   }
+
+  --argc;
+  ++argv;
 
   std::tie(argc, argv) = parseFlags(argc, argv);
 
@@ -357,14 +336,14 @@ int main(int argc, char** argv) {
 
   auto filename = argv[1];
 
-  if (!HasCorrectExt(filename)) {
+  if (!enums::HasCorrectExt(filename)) {
     std::fprintf(stderr,
                  "incorrect file extension; must be one of .hpp, .cpp, .cc\n");
     return 1;
   }
 
   for (auto i = 2; i < argc; ++i) {
-    wanted.push_back(argv[i]);
+    enums::gWanted.push_back(argv[i]);
   }
 
   auto index = clang_createIndex(0, 0);
@@ -383,26 +362,27 @@ int main(int argc, char** argv) {
   std::printf(
       "class Mock%s: public %s {\n"
       "public:\n",
-      gClassData.Name.c_str(), gClassData.Name.c_str());
-  for (const auto& method : gClassData.Methods) {
+      enums::gClassData.Name.c_str(), enums::gClassData.Name.c_str());
+  for (const auto& method : enums::gClassData.Methods) {
     std::printf("    MOCK_METHOD(%s, %s, (%s), (%s));\n",
                 method.ReturnType.c_str(), method.Name.c_str(),
                 method.Args.c_str(), method.Qualifiers.c_str());
   }
   std::printf("};\n");
 
-  if (entries.empty()) {
+  if (enums::gEntries.empty()) {
     std::fprintf(stderr, "no enums found with the given names\n");
     return 1;
   }
 
-  if (!AllEnumsFound()) return 1;
+  if (!enums::AllEnumsFound()) return 1;
 
   const auto namespaceFlag = FindFlag(fNamespace, -1);
   const auto inGuardFlag = FindFlag(fIncludeGuard, -1);
 
   std::vector<std::string> namespaces;
-  if (namespaceFlag->active) namespaces = SplitNamespaces(namespaceFlag->value);
+  if (namespaceFlag->active)
+    namespaces = enums::SplitNamespaces(namespaceFlag->value);
 
   printf("// GENERATED FILE, DO NOT EDIT!\n\n");
 
@@ -414,7 +394,7 @@ int main(int argc, char** argv) {
     for (const auto& n : namespaces) printf("namespace %s {\n", n.c_str());
   }
 
-  for (const auto& entry : entries) {
+  for (const auto& entry : enums::gEntries) {
     printf("\nstatic const char* EnumNames%s[] = {\n", entry.name.c_str());
     for (const auto& literal : entry.literals)
       printf("    \"%s\",\n", literal.c_str());

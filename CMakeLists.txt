@@ -26,7 +26,7 @@ message(STATUS "Tool version=${ENUMS_VERSION}")
 
 add_subdirectory(llvm-project/llvm)
 
-add_executable(enums main.cpp)
+add_executable(enums main.cpp strings.cpp)
 target_compile_definitions(enums PRIVATE ENUMS_VERSION="${ENUMS_VERSION}")
 target_include_directories(enums PRIVATE llvm-project/clang/include)
 target_link_libraries(enums PRIVATE libclang -static)
