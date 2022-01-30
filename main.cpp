@@ -27,52 +27,126 @@ static bool WantedEnum(std::vector<const char*> wanted, const char* name) {
   return false;
 }
 
+// static CXChildVisitResult visitor(CXCursor cursor, CXCursor parent,
+//                                   CXClientData client_data) {
+//   (void)client_data;
+
+//   auto kind = clang_getCursorKind(cursor);
+
+//   {
+//     auto spelling = clang_getCursorSpelling(cursor);
+//     auto kindSpelling = clang_getCursorKindSpelling(kind);
+//     std::printf("%s, %s, %d\n", clang_getCString(spelling),
+//                 clang_getCString(kindSpelling), kind);
+//     clang_disposeString(spelling);
+//     clang_disposeString(kindSpelling);
+//   }
+
+//   switch (kind) {
+//     case CXCursorKind::CXCursor_EnumDecl: {
+//       if (clang_EnumDecl_isScoped(cursor)) {
+//         auto spelling = clang_getCursorSpelling(cursor);
+//         auto kindSpelling = clang_getCursorKindSpelling(kind);
+
+//         if (WantedEnum(wanted, clang_getCString(spelling))) {
+//           entries.push_back(Entry{clang_getCString(spelling), {}});
+//         }
+
+//         clang_disposeString(spelling);
+//         clang_disposeString(kindSpelling);
+//       }
+
+//     } break;
+//     case CXCursorKind::CXCursor_EnumConstantDecl: {
+//       auto parentSpelling = clang_getCursorSpelling(parent);
+
+//       auto i = FindEntry(entries, clang_getCString(parentSpelling));
+//       if (i != -1) {
+//         auto spelling = clang_getCursorSpelling(cursor);
+
+//         entries[i].literals.push_back(clang_getCString(spelling));
+
+//         clang_disposeString(spelling);
+//       }
+
+//       clang_disposeString(parentSpelling);
+//     } break;
+//     default:
+//       break;
+//   }
+
+//   return CXChildVisit_Recurse;
+// }
+
+struct MethodData {
+  std::string ReturnType;
+  std::string Name;
+  std::string Args;
+  std::string Qualifiers;
+};
+
+struct ClassData {
+  std::string Name;
+  std::vector<MethodData> Methods;
+};
+
+static ClassData gClassData;
+
+static MethodData NewMethodData(std::string_view name, std::string_view type) {
+  // ret_type (arg0, arg1, ...) qualifier0 qualifier1 ...
+
+  MethodData d;
+  d.Name = name;
+
+  // search for first space => 0
+
+  auto startOfArgs = type.find_first_of('(');
+
+  d.ReturnType = type.substr(0, startOfArgs);
+
+  type.remove_prefix(startOfArgs + 1);
+
+  auto endOfArgs = type.find_first_of(')');
+
+  d.Args = type.substr(0, endOfArgs);
+
+  return d;
+}
+
 static CXChildVisitResult visitor(CXCursor cursor, CXCursor parent,
                                   CXClientData client_data) {
   (void)client_data;
 
   auto kind = clang_getCursorKind(cursor);
 
-  // {
-  //   auto spelling = clang_getCursorSpelling(cursor);
-  //   auto kindSpelling = clang_getCursorKindSpelling(kind);
-  //   std::printf("%s, %s, %d\n", clang_getCString(spelling),
-  //               clang_getCString(kindSpelling), kind);
-  //   clang_disposeString(spelling);
-  //   clang_disposeString(kindSpelling);
-  // }
+  {
+    auto spelling = clang_getCursorSpelling(cursor);
+    auto kindSpelling = clang_getCursorKindSpelling(kind);
+    auto type = clang_getCursorType(cursor);
+    auto typeSpelling = clang_getTypeSpelling(type);
 
-  switch (kind) {
-    case CXCursorKind::CXCursor_EnumDecl: {
-      if (clang_EnumDecl_isScoped(cursor)) {
-        auto spelling = clang_getCursorSpelling(cursor);
-        auto kindSpelling = clang_getCursorKindSpelling(kind);
+    std::fprintf(stderr, "| -kind: %s(%d), spelling: %s, type: %s\n",
+                 clang_getCString(kindSpelling), kind,
+                 clang_getCString(spelling), clang_getCString(typeSpelling));
 
-        if (WantedEnum(wanted, clang_getCString(spelling))) {
-          entries.push_back(Entry{clang_getCString(spelling), {}});
-        }
+    switch (kind) {
+      case CXCursor_ClassDecl: {
+        gClassData.Name = clang_getCString(spelling);
+      } break;
+      case CXCursor_ClassTemplate: {
+        // tbd
+      } break;
+      case CXCursor_CXXMethod: {
+        gClassData.Methods.emplace_back(NewMethodData(
+            clang_getCString(spelling), clang_getCString(typeSpelling)));
+      } break;
+      default:
+        break;
+    }
 
-        clang_disposeString(spelling);
-        clang_disposeString(kindSpelling);
-      }
-
-    } break;
-    case CXCursorKind::CXCursor_EnumConstantDecl: {
-      auto parentSpelling = clang_getCursorSpelling(parent);
-
-      auto i = FindEntry(entries, clang_getCString(parentSpelling));
-      if (i != -1) {
-        auto spelling = clang_getCursorSpelling(cursor);
-
-        entries[i].literals.push_back(clang_getCString(spelling));
-
-        clang_disposeString(spelling);
-      }
-
-      clang_disposeString(parentSpelling);
-    } break;
-    default:
-      break;
+    clang_disposeString(typeSpelling);
+    clang_disposeString(spelling);
+    clang_disposeString(kindSpelling);
   }
 
   return CXChildVisit_Recurse;
@@ -222,6 +296,15 @@ int main(int argc, char** argv) {
 
   auto cursor = clang_getTranslationUnitCursor(tu);
   clang_visitChildren(cursor, visitor, nullptr);
+
+  std::printf("class Mock%s: public %s {\n", gClassData.Name.c_str(),
+              gClassData.Name.c_str());
+  for (const auto& method : gClassData.Methods) {
+    std::printf("    MOCK_METHOD((%s), %s, (%s), ());\n",
+                method.ReturnType.c_str(), method.Name.c_str(),
+                method.Args.c_str());
+  }
+  std::printf("};\n");
 
   if (entries.empty()) {
     std::fprintf(stderr, "no enums found with the given names\n");
