@@ -1,10 +1,10 @@
-ENUMS_BIN = ./../../b/enums
+CPPSAK_BIN = ./../../b/cppsak
 OUT = test
 
 all: run
 
 build:
-	$(ENUMS_BIN) input.hpp Foo Bar > foobar.inc
+	$(CPPSAK_BIN) enums input.hpp Foo Bar > foobar.inc
 	c++ -g -fsanitize=address,undefined -O3 -Wall -Wextra -o $(OUT) main.cpp
 
 run: build

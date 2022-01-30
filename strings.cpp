@@ -1,7 +1,7 @@
 
 #include "strings.hpp"
 
-namespace enums {
+namespace cppsak {
 namespace strings {
 std::string Join(std::vector<std::string> s, std::string_view sep) {
   std::string r;
@@ -50,4 +50,4 @@ std::string Enclose(std::string_view s) {
 }
 
 }  // namespace strings
-}  // namespace enums
+}  // namespace cppsak

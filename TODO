@@ -1,7 +1,9 @@
 TODOs:
-- none
+- update readme
+- rename everything from enums to cppsak
+- add flag for printing cursor
+- add flag for gmock include file
 
 MAYBEs:
-- make enums subcomand and rename to c++ast to be able to add future subcommands?
 - parse compile_commands.json?
 - add enum parent namespaces to enum name?

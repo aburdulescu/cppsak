@@ -8,7 +8,7 @@
 
 #include "strings.hpp"
 
-namespace enums {
+namespace cppsak {
 struct Entry {
   std::string name;
   std::vector<std::string> literals;
@@ -222,7 +222,7 @@ std::vector<std::string> SplitNamespaces(std::string_view value) {
   return r;
 }
 
-}  // namespace enums
+}  // namespace cppsak
 
 namespace {
 struct Flag {
@@ -276,7 +276,7 @@ std::pair<int, char**> parseFlags(int argc, char** argv) {
 }
 
 const char* kUsage =
-    R""""(Usage: enums COMMAND [FLAGS] inputfile.[ch]pp type_name1...type_nameN
+    R""""(Usage: cppsak COMMAND [FLAGS] inputfile.[ch]pp type_name1...type_nameN
 
 Commands:
     enums   generate code for pretty-printing enums
@@ -294,7 +294,7 @@ void generateEnums() {
 
   std::vector<std::string> namespaces;
   if (namespaceFlag->active)
-    namespaces = enums::SplitNamespaces(namespaceFlag->value);
+    namespaces = cppsak::SplitNamespaces(namespaceFlag->value);
 
   printf("// GENERATED FILE, DO NOT EDIT!\n\n");
 
@@ -306,7 +306,7 @@ void generateEnums() {
     for (const auto& n : namespaces) printf("namespace %s {\n", n.c_str());
   }
 
-  for (const auto& entry : enums::gEntries) {
+  for (const auto& entry : cppsak::gEntries) {
     printf("\nstatic const char* EnumNames%s[] = {\n", entry.name.c_str());
     for (const auto& literal : entry.literals)
       printf("    \"%s\",\n", literal.c_str());
@@ -340,8 +340,8 @@ void generateGmocks() {
   std::printf(
       "class Mock%s: public %s {\n"
       "public:\n",
-      enums::gClassData.Name.c_str(), enums::gClassData.Name.c_str());
-  for (const auto& method : enums::gClassData.Methods) {
+      cppsak::gClassData.Name.c_str(), cppsak::gClassData.Name.c_str());
+  for (const auto& method : cppsak::gClassData.Methods) {
     std::printf("    MOCK_METHOD(%s, %s, (%s), (%s));\n",
                 method.ReturnType.c_str(), method.Name.c_str(),
                 method.Args.c_str(), method.Qualifiers.c_str());
@@ -361,15 +361,15 @@ int main(int argc, char** argv) {
 
   if (argc > 1) {
     if (strcmp(argv[1], "--version") == 0) {
-      std::printf("%s\n", ENUMS_VERSION);
+      std::printf("%s\n", CPPSAK_VERSION);
       return 0;
     } else if (strcmp(argv[1], "--help") == 0 || strcmp(argv[1], "-h") == 0) {
       std::printf("%s\n", kUsage);
       return 0;
     } else if (strcmp(argv[1], "enums") == 0) {
-      visitor = enums::EnumsVisitor;
+      visitor = cppsak::EnumsVisitor;
     } else if (strcmp(argv[1], "gmocks") == 0) {
-      visitor = enums::GmocksVisitor;
+      visitor = cppsak::GmocksVisitor;
     } else {
       std::fprintf(stderr, "unknown arg '%s'\n", argv[1]);
       return 1;
@@ -395,14 +395,14 @@ int main(int argc, char** argv) {
 
   auto filename = argv[1];
 
-  if (!enums::HasCorrectExt(filename)) {
+  if (!cppsak::HasCorrectExt(filename)) {
     std::fprintf(stderr,
                  "incorrect file extension; must be one of .hpp, .cpp, .cc\n");
     return 1;
   }
 
   for (auto i = 2; i < argc; ++i) {
-    enums::gWanted.push_back(argv[i]);
+    cppsak::gWanted.push_back(argv[i]);
   }
 
   auto index = clang_createIndex(0, 0);
@@ -423,12 +423,12 @@ int main(int argc, char** argv) {
   if (cmd == "gmocks") {
     generateGmocks();
   } else {
-    if (enums::gEntries.empty()) {
+    if (cppsak::gEntries.empty()) {
       std::fprintf(stderr, "no enums found with the given names\n");
       ret = 1;
       goto end;
     }
-    if (!enums::AllEnumsFound()) {
+    if (!cppsak::AllEnumsFound()) {
       ret = 1;
       goto end;
     }

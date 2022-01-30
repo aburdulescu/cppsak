@@ -20,13 +20,13 @@ cmake \
     -S . \
     -B $builddir \
     -G Ninja \
-    -DENUMS_VERSION=$(cat version.txt) \
+    -DCPPSAK_VERSION=$(cat version.txt) \
     -DLIBCLANG_BUILD_STATIC=ON \
     -DLLVM_ENABLE_PROJECTS="clang" \
     -DLLVM_ENABLE_PIC=OFF \
     -DLLVM_TARGETS_TO_BUILD=X86
 
 cmake --build $builddir --target libclang.a
-cmake --build $builddir --target enums
+cmake --build $builddir --target cppsak
 
-strip b/enums
+strip b/cppsak
