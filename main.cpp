@@ -47,44 +47,40 @@ static CXChildVisitResult EnumsVisitor(CXCursor cursor, CXCursor parent,
                                        CXClientData client_data) {
   (void)client_data;
 
+  auto spelling = clang_getCursorSpelling(cursor);
+  auto parentSpelling = clang_getCursorSpelling(parent);
   auto kind = clang_getCursorKind(cursor);
 
   printCursor(cursor);
 
+  CXChildVisitResult result = CXChildVisit_Recurse;
+
   switch (kind) {
     case CXCursorKind::CXCursor_EnumDecl: {
       if (clang_EnumDecl_isScoped(cursor)) {
-        auto spelling = clang_getCursorSpelling(cursor);
-        auto kindSpelling = clang_getCursorKindSpelling(kind);
-
-        if (WantedEnum(gWanted, clang_getCString(spelling))) {
-          gEntries.push_back(Entry{clang_getCString(spelling), {}});
+        if (!WantedEnum(gWanted, clang_getCString(spelling))) {
+          result = CXChildVisit_Continue;
+          break;
         }
-
-        clang_disposeString(spelling);
-        clang_disposeString(kindSpelling);
+        gEntries.push_back(Entry{clang_getCString(spelling), {}});
       }
-
     } break;
     case CXCursorKind::CXCursor_EnumConstantDecl: {
-      auto parentSpelling = clang_getCursorSpelling(parent);
-
       auto i = FindEntry(gEntries, clang_getCString(parentSpelling));
-      if (i != -1) {
-        auto spelling = clang_getCursorSpelling(cursor);
-
-        gEntries[i].literals.push_back(clang_getCString(spelling));
-
-        clang_disposeString(spelling);
+      if (i == -1) {
+        result = CXChildVisit_Continue;
+        break;
       }
-
-      clang_disposeString(parentSpelling);
+      gEntries[i].literals.push_back(clang_getCString(spelling));
     } break;
     default:
       break;
   }
 
-  return CXChildVisit_Recurse;
+  clang_disposeString(spelling);
+  clang_disposeString(parentSpelling);
+
+  return result;
 }
 
 struct MethodData {
@@ -319,6 +315,8 @@ int main(int argc, char** argv) {
     }
   }
 
+  std::string_view cmd{argv[1]};
+
   --argc;
   ++argv;
 
@@ -359,68 +357,70 @@ int main(int argc, char** argv) {
   auto cursor = clang_getTranslationUnitCursor(tu);
   clang_visitChildren(cursor, visitor, nullptr);
 
-  std::printf(
-      "class Mock%s: public %s {\n"
-      "public:\n",
-      enums::gClassData.Name.c_str(), enums::gClassData.Name.c_str());
-  for (const auto& method : enums::gClassData.Methods) {
-    std::printf("    MOCK_METHOD(%s, %s, (%s), (%s));\n",
-                method.ReturnType.c_str(), method.Name.c_str(),
-                method.Args.c_str(), method.Qualifiers.c_str());
-  }
-  std::printf("};\n");
+  if (cmd == "gmocks") {
+    std::printf(
+        "class Mock%s: public %s {\n"
+        "public:\n",
+        enums::gClassData.Name.c_str(), enums::gClassData.Name.c_str());
+    for (const auto& method : enums::gClassData.Methods) {
+      std::printf("    MOCK_METHOD(%s, %s, (%s), (%s));\n",
+                  method.ReturnType.c_str(), method.Name.c_str(),
+                  method.Args.c_str(), method.Qualifiers.c_str());
+    }
+    std::printf("};\n");
+  } else {
+    if (enums::gEntries.empty()) {
+      std::fprintf(stderr, "no enums found with the given names\n");
+      return 1;
+    }
 
-  if (enums::gEntries.empty()) {
-    std::fprintf(stderr, "no enums found with the given names\n");
-    return 1;
-  }
+    if (!enums::AllEnumsFound()) return 1;
 
-  if (!enums::AllEnumsFound()) return 1;
+    const auto namespaceFlag = FindFlag(fNamespace, -1);
+    const auto inGuardFlag = FindFlag(fIncludeGuard, -1);
 
-  const auto namespaceFlag = FindFlag(fNamespace, -1);
-  const auto inGuardFlag = FindFlag(fIncludeGuard, -1);
+    std::vector<std::string> namespaces;
+    if (namespaceFlag->active)
+      namespaces = enums::SplitNamespaces(namespaceFlag->value);
 
-  std::vector<std::string> namespaces;
-  if (namespaceFlag->active)
-    namespaces = enums::SplitNamespaces(namespaceFlag->value);
+    printf("// GENERATED FILE, DO NOT EDIT!\n\n");
 
-  printf("// GENERATED FILE, DO NOT EDIT!\n\n");
+    if (inGuardFlag->active) {
+      printf("#ifndef %s\n#define %s\n\n", inGuardFlag->value,
+             inGuardFlag->value);
+    }
+    if (namespaceFlag->active) {
+      for (const auto& n : namespaces) printf("namespace %s {\n", n.c_str());
+    }
 
-  if (inGuardFlag->active) {
-    printf("#ifndef %s\n#define %s\n\n", inGuardFlag->value,
-           inGuardFlag->value);
-  }
-  if (namespaceFlag->active) {
-    for (const auto& n : namespaces) printf("namespace %s {\n", n.c_str());
-  }
+    for (const auto& entry : enums::gEntries) {
+      printf("\nstatic const char* EnumNames%s[] = {\n", entry.name.c_str());
+      for (const auto& literal : entry.literals)
+        printf("    \"%s\",\n", literal.c_str());
+      printf("};\n\n");
 
-  for (const auto& entry : enums::gEntries) {
-    printf("\nstatic const char* EnumNames%s[] = {\n", entry.name.c_str());
-    for (const auto& literal : entry.literals)
-      printf("    \"%s\",\n", literal.c_str());
-    printf("};\n\n");
+      printf(
+          "inline const char* EnumName%s(%s v)\n"
+          "{\n"
+          "    if (v < %s::%s || v > %s::%s)\n"
+          "        return \"\";\n"
+          "    const auto index = static_cast<int>(v) - "
+          "static_cast<int>(%s::%s);\n"
+          "    return EnumNames%s[index];\n"
+          "}\n",
+          entry.name.c_str(), entry.name.c_str(), entry.name.c_str(),
+          entry.literals.front().c_str(), entry.name.c_str(),
+          entry.literals.back().c_str(), entry.name.c_str(),
+          entry.literals.front().c_str(), entry.name.c_str());
+    }
 
-    printf(
-        "inline const char* EnumName%s(%s v)\n"
-        "{\n"
-        "    if (v < %s::%s || v > %s::%s)\n"
-        "        return \"\";\n"
-        "    const auto index = static_cast<int>(v) - "
-        "static_cast<int>(%s::%s);\n"
-        "    return EnumNames%s[index];\n"
-        "}\n",
-        entry.name.c_str(), entry.name.c_str(), entry.name.c_str(),
-        entry.literals.front().c_str(), entry.name.c_str(),
-        entry.literals.back().c_str(), entry.name.c_str(),
-        entry.literals.front().c_str(), entry.name.c_str());
-  }
-
-  if (namespaceFlag->active) {
-    printf("\n");
-    for (const auto& n : namespaces) printf("} // %s\n", n.c_str());
-  }
-  if (inGuardFlag->active) {
-    printf("\n#endif\n");
+    if (namespaceFlag->active) {
+      printf("\n");
+      for (const auto& n : namespaces) printf("} // %s\n", n.c_str());
+    }
+    if (inGuardFlag->active) {
+      printf("\n#endif\n");
+    }
   }
 
   clang_disposeTranslationUnit(tu);
