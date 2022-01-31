@@ -11,7 +11,7 @@ See [here](./doc/build_from_src.md).
 
 ## Download
 
-Go to the [latest](https://github.com/aburdulescu/enums/releases/latest) release and:
+Go to the [latest](https://github.com/aburdulescu/cppsak/releases/latest) release and:
 
 - download the attached gzipped file
 - gunzip it

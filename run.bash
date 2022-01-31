@@ -1,13 +1,13 @@
 #!/bin/bash
 
-docker build -t enums_builder .
+docker build -t cppsak_builder .
 
-mkdir -p ~/tmp/enums_ccache/
+mkdir -p ~/tmp/cppsak_ccache/
 
 docker run \
        -it \
        --rm \
-       --name enums_builder \
-       -v $HOME/tmp/enums_ccache/:/ccache \
-       -v $(pwd):/enums \
-       enums_builder
+       --name cppsak_builder \
+       -v $HOME/tmp/cppsak_ccache/:/ccache \
+       -v $(pwd):/cppsak \
+       cppsak_builder
