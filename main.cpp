@@ -276,17 +276,17 @@ std::pair<int, char**> parseFlags(int argc, char** argv) {
 }
 
 const char* kUsage =
-    R""""(Usage: cppsak COMMAND [FLAGS] inputfile.[ch]pp type_name1...type_nameN
+    R""""(Usage: cppsak COMMAND [FLAGS]
 
 Commands:
     enums   generate code for pretty-printing enums
     gmocks  generate google mocks
 
 Flags:
-    -h, --help             print this message
-    --version              print version
-    --namespace=value      add given namespace to the generated file
-    --include-guard=value  add given include guard to the generated file)"""";
+    -h, --help  print this message
+    --version   print version
+
+Run `cppsak help command` for more information a specific command.)"""";
 
 void generateEnums() {
   const auto namespaceFlag = FindFlag(fNamespace, -1);
