@@ -22,9 +22,10 @@ Optionally, if you want to install it, you can copy it somewhere in your `PATH`(
 ## Usage
 
 ``` text
-Usage: cppsak COMMAND [FLAGS]
+Usage: cppsak [COMMAND | FLAGS]
 
 Commands:
+    help    print this message or the one for the given command
     enums   generate code for pretty-printing enums
     gmocks  generate google mocks
 
@@ -32,7 +33,7 @@ Flags:
     -h, --help  print this message
     --version   print version
 
-Run `cppsak help command` for more information a specific command.
+Run `cppsak help command` for more information about a specific command.
 ```
 
 More info about the commands [here](./doc/usage.md).

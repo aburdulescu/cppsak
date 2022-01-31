@@ -276,9 +276,10 @@ std::pair<int, char**> parseFlags(int argc, char** argv) {
 }
 
 const char* kUsage =
-    R""""(Usage: cppsak COMMAND [FLAGS]
+    R""""(Usage: cppsak [COMMAND | FLAGS]
 
 Commands:
+    help    print this message or the one for the given command
     enums   generate code for pretty-printing enums
     gmocks  generate google mocks
 
@@ -286,7 +287,7 @@ Flags:
     -h, --help  print this message
     --version   print version
 
-Run `cppsak help command` for more information a specific command.)"""";
+Run `cppsak help command` for more information about a specific command.)"""";
 
 void generateEnums() {
   const auto namespaceFlag = FindFlag(fNamespace, -1);
