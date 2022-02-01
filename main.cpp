@@ -25,8 +25,9 @@ std::vector<Entry> gEntries;
 std::vector<const char*> gWanted;
 
 static bool WantedEnum(std::vector<const char*> wanted, const char* name) {
-  for (auto e : wanted)
+  for (auto e : wanted) {
     if (std::strcmp(e, name) == 0) return true;
+  }
   return false;
 }
 
@@ -154,22 +155,26 @@ static CXChildVisitResult GmocksVisitor(CXCursor cursor, CXCursor parent,
   auto type = clang_getCursorType(cursor);
   auto typeSpelling = clang_getTypeSpelling(type);
 
-  CXChildVisitResult result = CXChildVisit_Recurse;
+  CXChildVisitResult result = CXChildVisit_Continue;
 
   switch (kind) {
     case CXCursor_ClassDecl: {
+      if (!WantedEnum(gWanted, clang_getCString(spelling))) {
+        break;
+      }
       gClassData.Name = clang_getCString(spelling);
+      result = CXChildVisit_Recurse;
     } break;
     case CXCursor_ClassTemplate: {
-      result = CXChildVisit_Continue;
+      // todo
     } break;
     case CXCursor_CXXMethod: {
       if (!WantedEnum(gWanted, clang_getCString(parentSpelling))) {
-        result = CXChildVisit_Continue;
         break;
       }
-      if (!clang_CXXMethod_isVirtual(cursor)) {
-        result = CXChildVisit_Continue;
+      if (!clang_CXXMethod_isVirtual(cursor) &&
+          !clang_CXXMethod_isPureVirtual(cursor)) {
+        std::fprintf(stderr, "not virtual or pure virtual\n");
         break;
       }
       MethodData d;
@@ -177,7 +182,7 @@ static CXChildVisitResult GmocksVisitor(CXCursor cursor, CXCursor parent,
       gClassData.Methods.emplace_back(d);
     } break;
     default:
-      result = CXChildVisit_Continue;
+      result = CXChildVisit_Recurse;
       break;
   }
 
@@ -406,18 +411,33 @@ int main(int argc, char** argv) {
     cppsak::gWanted.push_back(argv[i]);
   }
 
-  auto index = clang_createIndex(0, 0);
+  auto index = clang_createIndex(0, 1);
+
+  const char* compilerArgs[] = {
+      // "clang","-x c++"
+  };
+  const auto ncompilerArgs = sizeof(compilerArgs) / sizeof(char*);
 
   CXTranslationUnit tu;
-  auto err = clang_parseTranslationUnit2(index, filename, nullptr, 0, nullptr,
-                                         0, CXTranslationUnit_None, &tu);
+  auto err =
+      clang_parseTranslationUnit2(index, filename, compilerArgs, ncompilerArgs,
+                                  nullptr, 0, CXTranslationUnit_None, &tu);
   if (err != CXError_Success) {
     std::fprintf(stderr, "error while parsing file: %d\n", err);
     return 1;
   }
 
-  auto cursor = clang_getTranslationUnitCursor(tu);
-  clang_visitChildren(cursor, visitor, nullptr);
+  auto ndiags = clang_getNumDiagnostics(tu);
+  for (decltype(ndiags) i = 0; i < ndiags; ++i) {
+    auto d = clang_getDiagnostic(tu, i);
+    auto s = clang_formatDiagnostic(d, clang_defaultDiagnosticDisplayOptions());
+    std::fprintf(stderr, "%s\n", clang_getCString(s));
+    clang_disposeString(s);
+    clang_disposeDiagnostic(d);
+  }
+  if (ndiags > 0) return 1;
+
+  clang_visitChildren(clang_getTranslationUnitCursor(tu), visitor, nullptr);
 
   bool ret = 0;
 
