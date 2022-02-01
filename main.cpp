@@ -446,6 +446,11 @@ int main(int argc, char** argv) {
   bool ret = 0;
 
   if (cmd == "gmocks") {
+    if (cppsak::gClassData.Name.empty()) {
+      std::fprintf(stderr, "no class found with the given name\n");
+      ret = 1;
+      goto end;
+    }
     generateGmocks();
   } else {
     if (cppsak::gEntries.empty()) {
