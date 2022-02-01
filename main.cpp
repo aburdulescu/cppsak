@@ -418,6 +418,10 @@ int main(int argc, char** argv) {
   };
   const auto ncompilerArgs = sizeof(compilerArgs) / sizeof(char*);
 
+  // TODO: compilation database needed and parsed
+  // search given filename in db
+  // get args for that filename from db
+
   CXTranslationUnit tu;
   auto err =
       clang_parseTranslationUnit2(index, filename, compilerArgs, ncompilerArgs,
