@@ -30,3 +30,7 @@ add_executable(cppsak main.cpp strings.cpp)
 target_compile_definitions(cppsak PRIVATE CPPSAK_VERSION="${CPPSAK_VERSION}")
 target_include_directories(cppsak PRIVATE llvm-project/clang/include)
 target_link_libraries(cppsak PRIVATE libclang -static)
+
+#add_executable(compdb_test compdb_test.cpp)
+#target_include_directories(compdb_test PRIVATE llvm-project/clang/include)
+#target_link_libraries(compdb_test PRIVATE libclang -static)

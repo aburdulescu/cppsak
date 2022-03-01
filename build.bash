@@ -28,5 +28,6 @@ cmake \
 
 cmake --build $builddir --target libclang.a
 cmake --build $builddir --target cppsak
+cmake --build $builddir --target compdb_test
 
 strip b/cppsak
