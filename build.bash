@@ -41,6 +41,7 @@ cmake \
     -DLLVM_ENABLE_PROJECTS="clang" \
     -DLIBCLANG_BUILD_STATIC=ON \
     -DLLVM_ENABLE_PIC=OFF \
+    -DLLVM_INCLUDE_BENCHMARKS=OFF \
     -DLLVM_TARGETS_TO_BUILD=$llvm_target
 
 cmake --build $builddir --target libclang.a
