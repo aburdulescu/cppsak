@@ -8,7 +8,7 @@ releasedir=release-$version
 rm -rf $releasedir
 mkdir -p $releasedir
 
-docker cp enums_builder:/enums/b/enums $releasedir/
+cp b/enums $releasedir/
 
 cd $releasedir
 
